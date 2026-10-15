@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>TDS 円形版（修正版2）</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .circle-container {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    margin: 20px auto;
+  }
+  .circle-button {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform-origin: center center;
+    transition: transform 0.2s;
+    white-space: nowrap; /* 横書き固定 */
+  }
+  .active-button {
+    box-shadow: 0 0 0 4px #a5b4fc;
+  }
+</style>
+</head>
+<body class="bg-gray-50 font-sans">
+<div class="max-w-4xl mx-auto bg-white rounded-2xl shadow p-6">
+  <h1 class="text-2xl font-semibold mb-3 text-center">TDS — Temporal Dominance of Sensations</h1>
+
+  <div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700">Attributes (1行に1つ)</label>
+    <textarea id="attributesText" class="w-full mt-1 p-2 border rounded" rows="4">甘い
+酸っぱい
+塩っぱい
+苦い
+旨味
+渋い</textarea>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4 mb-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Panelist ID</label>
+      <input id="panelist" class="w-full mt-1 p-2 border rounded" value=""/>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Sample ID</label>
+      <input id="sampleId" class="w-full mt-1 p-2 border rounded" value=""/>
+    </div>
+  </div>
+
+  <div class="flex gap-2 mb-4 justify-center">
+    <button id="startBtn" class="px-3 py-2 rounded bg-green-600 text-white">Start</button>
+    <button id="pauseResumeBtn" class="px-3 py-2 rounded bg-yellow-500 text-white">Pause</button>
+    <button id="stopBtn" class="px-3 py-2 rounded bg-red-600 text-white">Stop</button>
+    <button id="exportBtn" class="px-3 py-2 rounded bg-indigo-600 text-white">Export CSV</button>
+    <button id="saveBtn" class="px-3 py-2 rounded bg-gray-200">Save session</button>
+    <select id="loadSelect" class="p-2 border rounded">
+      <option value="">-- choose saved session --</option>
+    </select>
+    <button id="deleteBtn" class="px-3 py-2 rounded bg-red-500 text-white">Delete</button>
+  </div>
+
+  <div class="text-center mb-4">Elapsed: <span id="elapsed" class="font-mono">00:00.00</span></div>
+
+  <div class="circle-container" id="circleContainer"></div>
+
+  <div class="mb-4">
+    <h2 class="text-lg font-medium">Event log</h2>
+    <div class="max-h-48 overflow-auto mt-2 border rounded p-2 bg-gray-50">
+      <table class="w-full text-sm">
+        <thead class="text-left text-gray-600">
+          <tr><th>#</th><th>Time</th><th>Attribute</th></tr>
+        </thead>
+        <tbody id="eventLogBody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+let attributesTextEl = document.getElementById('attributesText');
+let panelistInput = document.getElementById('panelist');
+let sampleInput = document.getElementById('sampleId');
+let elapsedDisplay = document.getElementById('elapsed');
+let circleContainer = document.getElementById('circleContainer');
+let eventLogBody = document.getElementById('eventLogBody');
+let loadSelect = document.getElementById('loadSelect');
+
+let attributes = attributesTextEl.value.split('\n').map(s=>s.trim()).filter(Boolean);
+let events = [];
+let isRunning = false;
+let startAt = null;
+let timer = null;
+let elapsed = 0;
+let activeAttr = null;
+
+// --- Timer ---
+function updateElapsed() {
+  elapsed = Date.now() - startAt;
+  elapsedDisplay.textContent = formatMs(elapsed);
+}
+function formatMs(ms){
+  const s = Math.floor(ms/1000);
+  const mm = Math.floor(s/60).toString().padStart(2,'0');
+  const ss = (s%60).toString().padStart(2,'0');
+  const cs = Math.floor((ms%1000)/10).toString().padStart(2,'0');
+  return `${mm}:${ss}.${cs}`;
+}
+
+// --- Events ---
+function logEvent(attr){
+  events.push({t:elapsed, attr: attr});
+  activeAttr = attr;
+  renderButtons();
+  renderLog();
+}
+function renderLog(){
+  eventLogBody.innerHTML = '';
+  if(events.length===0){
+    eventLogBody.innerHTML = '<tr><td colspan="3" class="py-2 text-gray-500">No events yet</td></tr>';
+    return;
+  }
+  events.forEach((e,i)=>{
+    const row = document.createElement('tr');
+    row.className='border-t';
+    row.innerHTML = `<td class="py-1 pr-2">${i+1}</td>
+                     <td class="py-1 pr-2 font-mono">${formatMs(e.t)}</td>
+                     <td class="py-1">${e.attr ?? '0'}</td>`;
+    eventLogBody.appendChild(row);
+  });
+}
+
+// --- Circle buttons ---
+function renderButtons(){
+  // Refresh attributes from current array
+  circleContainer.innerHTML = '';
+  const radius = 150;
+  const centerX = 200, centerY = 200;
+  attributes.forEach((a,i)=>{
+    const angle = (2*Math.PI/attributes.length)*i;
+    const x = centerX + radius*Math.cos(angle);
+    const y = centerY + radius*Math.sin(angle);
+    const btn = document.createElement('button');
+    btn.textContent = a;
+    btn.className = 'circle-button p-3 rounded-full bg-white shadow font-semibold';
+    if(a===activeAttr) btn.classList.add('active-button');
+    btn.style.left = `${x}px`;
+    btn.style.top = `${y}px`;
+    btn.addEventListener('click',()=>handleAttrClick(a));
+    circleContainer.appendChild(btn);
+  });
+}
+
+function handleAttrClick(attr){
+  if(!isRunning){
+    startSession();
+    setTimeout(()=>logEvent(attr),50);
+  } else {
+    if(activeAttr===attr) logEvent(null);
+    else logEvent(attr);
+  }
+}
+
+// --- Control buttons ---
+function startSession(){
+  events=[];
+  elapsed=0;
+  activeAttr=null;
+  startAt=Date.now();
+  isRunning=true;
+  timer=setInterval(updateElapsed,100);
+  renderButtons();
+  renderLog();
+  updatePauseResumeBtn();
+}
+
+function pauseResumeSession(){
+  if(isRunning){
+    isRunning=false;
+    if(timer){ clearInterval(timer); timer=null; }
+  } else {
+    isRunning=true;
+    startAt=Date.now()-elapsed;
+    timer=setInterval(updateElapsed,100);
+  }
+  updatePauseResumeBtn();
+}
+function updatePauseResumeBtn(){
+  document.getElementById('pauseResumeBtn').textContent = isRunning ? 'Pause' : 'Resume';
+}
+
+function stopSession(){
+  if(isRunning) logEvent(null);
+  isRunning=false;
+  if(timer){ clearInterval(timer); timer=null; }
+  elapsed=0;
+  activeAttr=null;
+  renderButtons();
+  renderLog();
+  updatePauseResumeBtn();
+}
+
+// --- CSV ---
+function exportCSV(){
+  const lines = [];
+  lines.push(`panelist,${panelistInput.value}`);
+  lines.push(`sample,${sampleInput.value}`);
+  lines.push(`created_at,${new Date().toISOString()}`);
+  lines.push(`attributes,${attributes.join(';')}`);
+  lines.push('');
+  lines.push('event_index,t_seconds,hhmmss,attribute');
+  events.forEach((e,i)=>{
+    const t_s=(e.t/1000).toFixed(2);
+    lines.push(`${i+1},${t_s},${formatMs(e.t)},${e.attr??'0'}`);
+  });
+  const csvContent = "\uFEFF"+lines.join('\n'); // BOM付きUTF-8
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tds_${panelistInput.value||'anon'}_${sampleInput.value||'sample'}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// --- Save / Load ---
+function saveSession(){
+  const name = prompt('Save session name?');
+  if(!name) return;
+  const payload = {
+    panelist: panelistInput.value,
+    sampleId: sampleInput.value,
+    attributes: attributes,
+    events: events,
+    createdAt: new Date().toISOString()
+  };
+  localStorage.setItem('tds_session_'+name, JSON.stringify(payload));
+  refreshLoadSelect();
+}
+
+function refreshLoadSelect(){
+  loadSelect.innerHTML = '<option value="">-- choose saved session --</option>';
+  for(let i=0;i<localStorage.length;i++){
+    const key = localStorage.key(i);
+    if(key.startsWith('tds_session_')){
+      const name = key.replace('tds_session_','');
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      loadSelect.appendChild(opt);
+    }
+  }
+}
+
+function loadSession(){
+  const name = loadSelect.value;
+  if(!name) return;
+  const s = localStorage.getItem('tds_session_'+name);
+  if(!s) return;
+  const data = JSON.parse(s);
+  panelistInput.value = data.panelist;
+  sampleInput.value = data.sampleId;
+  attributes = data.attributes;
+  attributesTextEl.value = data.attributes.join('\n'); // textareaに反映
+  events = data.events;
+  activeAttr = null;
+  renderButtons();
+  renderLog();
+}
+
+function deleteSession(){
+  const name = loadSelect.value;
+  if(!name) return;
+  localStorage.removeItem('tds_session_'+name);
+  refreshLoadSelect();
+}
+
+// --- Init ---
+renderButtons();
+refreshLoadSelect();
+
+// --- Listeners ---
+document.getElementById('startBtn').addEventListener('click',startSession);
+document.getElementById('pauseResumeBtn').addEventListener('click',pauseResumeSession);
+document.getElementById('stopBtn').addEventListener('click',stopSession);
+document.getElementById('exportBtn').addEventListener('click',exportCSV);
+document.getElementById('saveBtn').addEventListener('click',saveSession);
+loadSelect.addEventListener('change',loadSession);
+document.getElementById('deleteBtn').addEventListener('click',deleteSession);
+attributesTextEl.addEventListener('input',()=>{
+  attributes = attributesTextEl.value.split('\n').map(s=>s.trim()).filter(Boolean);
+  renderButtons();
+});
+</script>
+</body>
+</html>
