@@ -1,0 +1,5 @@
+
+SampleID,Measurement,Value,Unit
+S001,pH,6.8,pH
+S002,pH,7.1,pH
+S003,TDS,125,ppm
