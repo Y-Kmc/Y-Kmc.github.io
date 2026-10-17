@@ -1,0 +1,26 @@
+<!-- 複数試料の一括送信UI -->
+<div class="my-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+  <h2 class="font-bold text-lg mb-2">測定結果の回収</h2>
+  <p class="text-sm mb-3">
+    試料ごとに Stop で確定し、すべての測定が終わったら
+    「全結果を送信」を押してください。
+  </p>
+  <div class="flex flex-wrap gap-2">
+    <button id="completeTrialBtn"
+      class="rounded bg-blue-600 px-4 py-2 text-white">
+      試料を確定
+    </button>
+    <button id="sendAllBtn"
+      class="rounded bg-indigo-700 px-4 py-2 text-white">
+      全結果を送信
+    </button>
+    <button id="exportAllBtn"
+      class="rounded border bg-white px-4 py-2">
+      全結果をCSV保存
+    </button>
+  </div>
+  <p id="collectionStatus" class="mt-3 text-sm" role="status">
+    確定済み試料：0件
+  </p>
+  <ul id="completedTrialList" class="mt-2 list-disc pl-5 text-sm"></ul>
+</div>
