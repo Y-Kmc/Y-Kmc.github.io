@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>ネットワーク接続テスト</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Yu Gothic", "Meiryo", sans-serif;
+      color: #263445;
+      background: linear-gradient(135deg, #edf4fb, #f8fafc, #e6f1f0);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 620px;
+      padding: 42px 32px;
+      text-align: center;
+      background: #fff;
+      border: 1px solid #e1e8ef;
+      border-radius: 18px;
+      box-shadow: 0 12px 36px rgba(36, 59, 83, 0.08);
+    }
+
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      height: 60px;
+      margin-bottom: 16px;
+      border-radius: 50%;
+      background: #e2f4ed;
+      color: #258363;
+      font-size: 28px;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 25px;
+    }
+
+    p {
+      font-size: 14px;
+      line-height: 1.9;
+    }
+
+    .section {
+      margin-top: 28px;
+      padding: 22px;
+      text-align: left;
+      background: #f7f9fc;
+      border-radius: 12px;
+    }
+
+    .section h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .button {
+      display: block;
+      margin-top: 16px;
+      padding: 14px 18px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+      background: #2866a6;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .button:hover {
+      background: #1c4f85;
+    }
+
+    .note {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid #edf0f3;
+      color: #718096;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 30px 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <div class="icon" aria-hidden="true">✓</div>
+
+    <h1>ネットワーク接続テスト</h1>
+
+    <p>
+      お世話になっております。<br>
+      本ページは、Webページの閲覧および<br>
+      CSVファイルのダウンロードを確認するためのテストページです。
+    </p>
+
+    <div class="section">
+      <h2>STEP 1　ページ表示の確認</h2>
+      <p>
+        このページが正常に表示されていれば、Webページへのアクセスは成功です。
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>STEP 2　CSVダウンロードの確認</h2>
+      <p>
+        下のボタンを押して、テスト用CSVファイルをダウンロードしてください。
+      </p>
+
+      <a class="button" href="./test_result.csv" download>
+        CSVファイルをダウンロード
+      </a>
+
+      <p>
+        ファイル名：test_result.csv
+      </p>
+    </div>
+
+    <div class="note">
+      ※ このCSVは動作確認用のサンプルデータです。<br>
+      ※ 実際の測定結果や顧客情報は含まれていません。
+    </div>
+  </main>
+</body>
+</html>
