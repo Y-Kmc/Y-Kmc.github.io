@@ -1,0 +1,365 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>ネットワーク接続テスト</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Yu Gothic", "Meiryo", sans-serif;
+      color: #263445;
+      background: linear-gradient(135deg, #edf4fb, #f8fafc, #e6f1f0);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 620px;
+      padding: 42px 32px;
+      background: #fff;
+      border: 1px solid #e1e8ef;
+      border-radius: 18px;
+      box-shadow: 0 12px 36px rgba(36, 59, 83, 0.08);
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      height: 60px;
+      margin-bottom: 16px;
+      border-radius: 50%;
+      background: #e2f4ed;
+      color: #258363;
+      font-size: 28px;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 25px;
+    }
+
+    p {
+      font-size: 14px;
+      line-height: 1.9;
+    }
+
+    .notice {
+      margin-top: 24px;
+      padding: 18px;
+      background: #eef6ff;
+      border: 1px solid #d4e6fa;
+      border-radius: 12px;
+    }
+
+    .notice strong {
+      color: #2866a6;
+    }
+
+    .section {
+      margin-top: 24px;
+      padding: 22px;
+      background: #f7f9fc;
+      border-radius: 12px;
+    }
+
+    .section h2 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .step {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: #2866a6;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px;
+      border: 1px solid #ccd8e5;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 15px;
+    }
+
+    .button {
+      display: block;
+      width: 100%;
+      margin-top: 18px;
+      padding: 14px 18px;
+      border: none;
+      border-radius: 8px;
+      background: #258363;
+      color: #fff;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      background: #1d6c50;
+    }
+
+    .button:disabled {
+      background: #9aada6;
+      cursor: wait;
+    }
+
+    .result {
+      display: none;
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
+    }
+
+    .result.info {
+      display: block;
+      color: #245b8e;
+      background: #eef6ff;
+      border: 1px solid #cfe2f8;
+    }
+
+    .result.success {
+      display: block;
+      color: #176c4a;
+      background: #eaf8f1;
+      border: 1px solid #bde8d2;
+    }
+
+    .result.error {
+      display: block;
+      color: #9b3030;
+      background: #fff0f0;
+      border: 1px solid #f1cccc;
+    }
+
+    .note {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid #edf0f3;
+      color: #718096;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+      }
+
+      .container {
+        padding: 28px 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+
+    <header class="header">
+      <div class="icon" aria-hidden="true">✓</div>
+      <h1>ネットワーク接続テスト</h1>
+      <p>
+        お世話になっております。<br>
+        本ページでは、Webページの閲覧と<br>
+        テストデータの送信を確認します。
+      </p>
+    </header>
+
+    <div class="notice">
+      <strong>このページで確認できること</strong>
+      <p>
+        ① Webページの表示（GitHub Pagesへのアクセス）<br>
+        ② データの送信（Google Apps Script経由で保存先へ送信）
+      </p>
+    </div>
+
+    <section class="section">
+      <h2><span class="step">1</span>ページ表示の確認</h2>
+      <p>
+        このページが正常に表示されていれば、
+        GitHub Pagesへのアクセスは成功です。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2><span class="step">2</span>テストデータの送信</h2>
+      <p>
+        下のボタンを押すと、架空のテストデータを送信します。
+        実際の測定結果や個人情報を入力する必要はありません。
+      </p>
+
+      <label for="panelistId">テストID</label>
+      <input
+        id="panelistId"
+        type="text"
+        value="network_test"
+        maxlength="50"
+        autocomplete="off"
+      >
+
+      <label for="sampleId">試料ID</label>
+      <input
+        id="sampleId"
+        type="text"
+        value="sample_test"
+        maxlength="50"
+        autocomplete="off"
+      >
+
+      <button class="button" id="sendButton" type="button">
+        テストデータを送信する
+      </button>
+
+      <div id="result" class="result" role="status" aria-live="polite"></div>
+    </section>
+
+    <div class="note">
+      <strong>補足事項</strong><br>
+      ・送信されるのは、入力したテストID・試料IDと架空のイベントデータです。<br>
+      ・送信操作後、保存先のスプレッドシートでデータの到着をご確認ください。<br>
+      ・画面の表示だけでは、スプレッドシートへの保存完了を保証できません。
+    </div>
+
+  </main>
+
+  <script>
+    // =====================================================
+    // 設定：本番のTDSアプリと同じApps Scriptを使用
+    // =====================================================
+    const GAS_URL =
+      'https://script.google.com/macros/s/AKfycbye7ROVuwgcFfELT9j9QcjyVSpnxw1Dh0O624izsF-xv4T3XI7cLx0Oiw21pqAecvHc/exec';
+
+    const ACCESS_KEY = 'mcls_tds_test';
+
+    const sendButton = document.getElementById('sendButton');
+    const result = document.getElementById('result');
+
+    function showResult(message, type) {
+      result.className = 'result ' + type;
+      result.textContent = message;
+    }
+
+    sendButton.addEventListener('click', async () => {
+      const panelistId = document.getElementById('panelistId')
+        .value.trim();
+      const sampleId = document.getElementById('sampleId')
+        .value.trim();
+
+      if (!panelistId || !sampleId) {
+        showResult('テストIDと試料IDを入力してください。', 'error');
+        return;
+      }
+
+      if (
+        GAS_URL.includes('ここに') ||
+        !GAS_URL.startsWith('https://')
+      ) {
+        showResult('送信先URLの設定を確認してください。', 'error');
+        return;
+      }
+
+      sendButton.disabled = true;
+      sendButton.textContent = '送信処理中...';
+
+      showResult(
+        '送信リクエストを送っています。しばらくお待ちください。',
+        'info'
+      );
+
+      const now = new Date().toISOString();
+      const trialId = 'network-' + Date.now();
+
+      // 本番TDSアプリと同じ形式のテストデータ
+      const payload = {
+        accessKey: ACCESS_KEY,
+        submissionId: 'network-test-' + Date.now(),
+        panelistId: panelistId,
+        submittedAt: now,
+        trials: [
+          {
+            trialId: trialId,
+            panelistId: panelistId,
+            sampleId: sampleId,
+            createdAt: now,
+            attributes: ['甘味', '酸味'],
+            durationMs: 5000,
+            events: [
+              { t: 0, attr: '甘味' },
+              { t: 1800, attr: '酸味' },
+              { t: 3200, attr: '甘味' }
+            ]
+          }
+        ]
+      };
+
+      try {
+        // no-cors方式ではサーバーの応答内容を読み取れない
+        await fetch(GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=UTF-8'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        showResult(
+          '送信リクエストを送信しました。' +
+          'ただし、保存完了をこの画面では確認できません。' +
+          '管理者がスプレッドシートで受信を確認します。',
+          'success'
+        );
+
+      } catch (error) {
+        showResult(
+          '送信処理でエラーが発生しました。' +
+          'ネットワーク環境や接続先URLをご確認ください。',
+          'error'
+        );
+
+      } finally {
+        sendButton.disabled = false;
+        sendButton.textContent = 'テストデータを送信する';
+      }
+    });
+  </script>
+</body>
+</html>
