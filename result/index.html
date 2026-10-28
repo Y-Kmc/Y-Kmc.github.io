@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -12,7 +13,6 @@
     font-family: sans-serif;
   }
 
-  /* 3×3の評価ボタン */
   .attribute-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -28,19 +28,38 @@
     padding: 8px 4px;
     overflow-wrap: anywhere;
     word-break: normal;
-    transition: background-color .15s, box-shadow .15s;
+    transition: background-color .15s, box-shadow .15s, border-color .15s;
     touch-action: manipulation;
   }
 
   .active-button {
-    box-shadow: 0 0 0 4px #a5b4fc;
+    box-shadow: 0 0 0 3px #a5b4fc;
     background-color: #e0e7ff !important;
     border-color: #6366f1 !important;
+  }
+
+  /* 飲み込みタイミングを強調 */
+  .swallow-phase .attribute-button {
+    border-color: #dc2626 !important;
+    border-width: 3px !important;
+  }
+
+  .swallow-phase .active-button {
+    box-shadow: 0 0 0 4px #fca5a5;
+  }
+
+  .attribute-button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
   }
 
   button:disabled {
     opacity: .5;
     cursor: not-allowed;
+  }
+
+  #timerStatus {
+    white-space: pre-line;
   }
 
   @media (max-width: 400px) {
@@ -60,169 +79,151 @@
 
 <main class="max-w-4xl mx-auto bg-white rounded-2xl shadow p-4 md:p-6 my-6">
 
-<h1 class="text-2xl font-bold text-center mb-4">
-  TDS — Temporal Dominance of Sensations
-</h1>
+  <h1 class="text-2xl font-bold text-center mb-4">
+    TDS — Temporal Dominance of Sensations
+  </h1>
 
-<div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 text-sm">
-  <h2 class="font-bold text-base mb-2">使い方</h2>
-  <ol class="list-decimal list-inside space-y-1">
-    <li>Panelist ID と Sample ID を入力します。</li>
-    <li>Start を押して評価を開始します。</li>
-    <li>その瞬間に最も優勢な感覚を3×3のボタンから選択します。</li>
-    <li>同じボタンをもう一度押すと選択が解除されます。</li>
-    <li>Stop を押し、「試料を確定」で結果を保存します。</li>
-    <li>次の Sample ID を入力して、同じ操作を繰り返します。</li>
-    <li>最後に「全結果を送信」を押します。</li>
-  </ol>
-</div>
+  <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 text-sm">
+    <h2 class="font-bold text-base mb-2">使い方</h2>
+    <ol class="list-decimal list-inside space-y-1">
+      <li>Panelist ID と Sample ID を入力します。</li>
+      <li>試料を口に含んだら Start を押します。</li>
+      <li>3秒のカウントダウン後、評価が始まります。</li>
+      <li>その瞬間に最も優勢な感覚を3×3のボタンから1つ選択します。</li>
+      <li>評価開始から10秒後に「飲み込み」の合図が表示されます。</li>
+      <li>評価開始から25秒後に自動終了し、結果が自動保存されます。</li>
+      <li>次の Sample ID を入力し、Start を押して続けます。</li>
+      <li>最後に「全結果を送信」を押します。CSVもバックアップとして保存できます。</li>
+    </ol>
+  </div>
 
-<!-- 評価属性は固定 -->
+  <section class="mb-4">
+    <p class="text-sm font-medium text-gray-700 mb-2">評価属性</p>
+    <p class="text-xs text-gray-500">
+      その瞬間に最も優勢な感覚を1つ選択してください。
+      同じボタンをもう一度押すと選択が解除されます。
+    </p>
+  </section>
 
-<section class="mb-4">
-  <p class="text-sm font-medium text-gray-700 mb-2">
-    評価属性
-  </p>
+  <section class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+    <div>
+      <label for="panelist" class="block text-sm font-medium">
+        Panelist ID
+      </label>
+      <input id="panelist"
+        class="w-full mt-1 p-2 border rounded"
+        maxlength="100"
+        autocomplete="off">
+    </div>
+
+    <div>
+      <label for="sampleId" class="block text-sm font-medium">
+        Sample ID
+      </label>
+      <input id="sampleId"
+        class="w-full mt-1 p-2 border rounded"
+        maxlength="100"
+        autocomplete="off">
+    </div>
+  </section>
+
+  <div class="flex flex-wrap gap-2 mb-4 justify-center">
+    <button id="startBtn"
+      class="px-5 py-3 rounded bg-green-600 text-white font-bold">
+      Start
+    </button>
+
+    <button id="exportBtn"
+      class="px-3 py-2 rounded bg-indigo-600 text-white">
+      Export CSV
+    </button>
+  </div>
+
+  <div class="text-center mb-2">
+    <p class="text-sm text-gray-500">Elapsed</p>
+    <div id="elapsed" class="font-mono font-bold text-3xl">00:00.00</div>
+  </div>
+
+  <div id="timerStatus"
+    class="text-center text-lg font-bold text-gray-600 py-3"
+    role="status"
+    aria-live="assertive">
+    未開始
+  </div>
+
+  <div class="attribute-grid" id="circleContainer"></div>
+
+  <section class="border rounded-xl p-4 mt-5 mb-5">
+    <h2 class="text-lg font-bold mb-2">測定結果の回収</h2>
+
+    <p class="text-sm text-gray-600 mb-3">
+      各試料の測定終了後に自動で確定します。
+      全試料の測定が終わったら一括送信してください。
+    </p>
+
+    <div class="flex flex-wrap gap-2">
+      <button id="sendAllBtn"
+        class="px-4 py-2 rounded bg-indigo-700 text-white">
+        全結果を送信
+      </button>
+
+      <button id="exportAllBtn"
+        class="px-4 py-2 rounded border bg-white">
+        全結果をCSV保存
+      </button>
+    </div>
+
+    <p id="collectionStatus"
+      class="mt-3 text-sm"
+      role="status"
+      aria-live="polite">
+      確定済み試料：0件
+    </p>
+
+    <ul id="completedTrialList"
+      class="mt-2 list-disc pl-5 text-sm"></ul>
+  </section>
+
+  <section class="mb-4">
+    <h2 class="text-lg font-medium">Event log</h2>
+
+    <div class="max-h-48 overflow-auto mt-2 border rounded p-2 bg-gray-50">
+      <table class="w-full text-sm">
+        <thead class="text-left text-gray-600 border-b">
+          <tr>
+            <th class="pb-1">#</th>
+            <th class="pb-1">Time</th>
+            <th class="pb-1">Attribute</th>
+          </tr>
+        </thead>
+        <tbody id="eventLogBody"></tbody>
+      </table>
+    </div>
+  </section>
+
   <p class="text-xs text-gray-500">
-    その瞬間に最も優勢な感覚を1つ選択してください。
+    デモ版：測定データはブラウザ内に一時保存されます。
+    送信後は管理側のスプレッドシートで保存結果を確認してください。
+    送信結果を確認できない場合に備え、CSVをバックアップとして保存してください。
   </p>
-</section>
-
-<section class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-  <div>
-    <label for="panelist" class="block text-sm font-medium">
-      Panelist ID
-    </label>
-    <input id="panelist"
-      class="w-full mt-1 p-2 border rounded"
-      maxlength="100"
-      autocomplete="off">
-  </div>
-
-  <div>
-    <label for="sampleId" class="block text-sm font-medium">
-      Sample ID
-    </label>
-    <input id="sampleId"
-      class="w-full mt-1 p-2 border rounded"
-      maxlength="100"
-      autocomplete="off">
-  </div>
-</section>
-
-<div class="flex flex-wrap gap-2 mb-4 justify-center">
-  <button id="startBtn"
-    class="px-3 py-2 rounded bg-green-600 text-white">
-    Start
-  </button>
-
-  <button id="pauseResumeBtn"
-    class="px-3 py-2 rounded bg-yellow-500 text-white">
-    Pause
-  </button>
-
-  <button id="stopBtn"
-    class="px-3 py-2 rounded bg-red-600 text-white">
-    Stop
-  </button>
-
-  <button id="exportBtn"
-    class="px-3 py-2 rounded bg-indigo-600 text-white">
-    Export CSV
-  </button>
-
-  <button id="saveBtn"
-    class="px-3 py-2 rounded bg-gray-200">
-    Save session
-  </button>
-
-  <select id="loadSelect" class="p-2 border rounded">
-    <option value="">-- saved sessions --</option>
-  </select>
-
-  <button id="deleteBtn"
-    class="px-3 py-2 rounded bg-red-500 text-white">
-    Delete
-  </button>
-</div>
-
-<div class="text-center text-lg mb-2">
-  Elapsed:
-  <span id="elapsed" class="font-mono font-bold">00:00.00</span>
-</div>
-
-<p id="timerStatus" class="text-center text-sm text-gray-500">
-  未開始
-</p>
-
-<!-- 3×3評価ボタン -->
-<div class="attribute-grid" id="circleContainer"></div>
-
-<section class="border rounded-xl p-4 mt-5 mb-5">
-  <h2 class="text-lg font-bold mb-2">測定結果の回収</h2>
-
-  <p class="text-sm text-gray-600 mb-3">
-    各試料の測定終了後に確定し、全試料の測定が終わったら一括送信します。
-  </p>
-
-  <div class="flex flex-wrap gap-2">
-    <button id="completeTrialBtn"
-      class="px-4 py-2 rounded bg-blue-600 text-white">
-      試料を確定
-    </button>
-
-    <button id="sendAllBtn"
-      class="px-4 py-2 rounded bg-indigo-700 text-white">
-      全結果を送信
-    </button>
-
-    <button id="exportAllBtn"
-      class="px-4 py-2 rounded border bg-white">
-      全結果をCSV保存
-    </button>
-  </div>
-
-  <p id="collectionStatus"
-    class="mt-3 text-sm"
-    role="status">
-    確定済み試料：0件
-  </p>
-
-  <ul id="completedTrialList"
-    class="mt-2 list-disc pl-5 text-sm"></ul>
-</section>
-
-<section class="mb-4">
-  <h2 class="text-lg font-medium">Event log</h2>
-
-  <div class="max-h-48 overflow-auto mt-2 border rounded p-2 bg-gray-50">
-    <table class="w-full text-sm">
-      <thead class="text-left text-gray-600 border-b">
-        <tr>
-          <th class="pb-1">#</th>
-          <th class="pb-1">Time</th>
-          <th class="pb-1">Attribute</th>
-        </tr>
-      </thead>
-      <tbody id="eventLogBody"></tbody>
-    </table>
-  </div>
-</section>
-
-<p class="text-xs text-gray-500">
-  デモ版：測定データはブラウザ内に一時保存されます。
-  送信後は管理側のスプレッドシートで保存結果を確認してください。
-  送信結果を確認できない場合に備え、CSVをバックアップとして保存してください。
-</p>
 
 </main>
 
 <script>
 // =====================================================
-// 設定：Apps Scriptのデプロイ後に変更してください
+// 設定：現行のApps Script設定を維持
 // =====================================================
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbye7ROVuwgcFfELT9j9QcjyVSpnxw1Dh0O624izsF-xv4T3XI7cLx0Oiw21pqAecvHc/exec';
 const ACCESS_KEY = 'mcls_tds_test';
+
+// =====================================================
+// 試験条件
+// =====================================================
+const COUNTDOWN_SECONDS = 3;
+const SWALLOW_SECONDS = 10;
+const TOTAL_SECONDS = 25;
+
+const DRAFT_KEY = 'tds_demo_draft_v1';
 
 // =====================================================
 // 固定評価属性
@@ -250,16 +251,15 @@ const sampleInput = $('sampleId');
 const elapsedDisplay = $('elapsed');
 const circleContainer = $('circleContainer');
 const eventLogBody = $('eventLogBody');
-const loadSelect = $('loadSelect');
-
-const DRAFT_KEY = 'tds_demo_draft_v1';
 
 let events = [];
 let completedTrials = [];
 
-let isRunning = false;
-let sessionStarted = false;
+let phase = 'idle';
+// idle / countdown / running
+
 let startAt = null;
+let countdownAt = null;
 let timer = null;
 let elapsed = 0;
 let activeAttr = null;
@@ -280,13 +280,6 @@ function formatMs(ms) {
   return `${mm}:${ss}.${cs}`;
 }
 
-function updateElapsed() {
-  if (!isRunning || startAt === null) return;
-
-  elapsed = Date.now() - startAt;
-  elapsedDisplay.textContent = formatMs(elapsed);
-}
-
 function setTimerStatus(text) {
   $('timerStatus').textContent = text;
 }
@@ -298,10 +291,34 @@ function stopTimer() {
   }
 }
 
+function setPhase(nextPhase) {
+  phase = nextPhase;
+
+  $('startBtn').disabled =
+    phase === 'countdown' || phase === 'running';
+
+  const inputsLocked =
+    phase === 'countdown' || phase === 'running';
+
+  panelistInput.disabled = inputsLocked;
+  sampleInput.disabled = inputsLocked;
+
+  renderButtons();
+}
+
+function makeId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+
+  return Date.now().toString(36) + '-' +
+    Math.random().toString(36).slice(2);
+}
+
 // =====================================================
 // イベント記録
 // =====================================================
 function logEvent(attr) {
+  if (phase !== 'running') return;
+
   events.push({
     t: Math.max(0, Math.round(elapsed)),
     attr: attr
@@ -353,6 +370,11 @@ function renderLog() {
 function renderButtons() {
   circleContainer.replaceChildren();
 
+  circleContainer.classList.toggle(
+    'swallow-phase',
+    phase === 'running' && elapsed >= SWALLOW_SECONDS * 1000
+  );
+
   attributes.forEach(attr => {
     const btn = document.createElement('button');
 
@@ -368,7 +390,7 @@ function renderButtons() {
       btn.classList.add('active-button');
     }
 
-    btn.disabled = !isRunning;
+    btn.disabled = phase !== 'running';
 
     btn.addEventListener('click', () => handleAttrClick(attr));
 
@@ -377,7 +399,7 @@ function renderButtons() {
 }
 
 function handleAttrClick(attr) {
-  if (!isRunning) return;
+  if (phase !== 'running') return;
 
   // 同じ属性を再度押すと解除
   // 別の属性を押すと、その属性に切り替える
@@ -385,113 +407,162 @@ function handleAttrClick(attr) {
 }
 
 // =====================================================
-// 計測制御
+// 計測開始
+// Start → 3秒待機 → 25秒評価 → 自動確定
 // =====================================================
 function startSession() {
-  if (isRunning) return;
-
-  if (sessionStarted) {
-    // 一時停止からの再開
-    startAt = Date.now() - elapsed;
-  } else {
-    // 新しい試料の測定開始
-    if (completedTrials.some(
-      t => t.panelistId === panelistInput.value.trim() &&
-           t.sampleId === sampleInput.value.trim()
-    )) {
-      const proceed = confirm(
-        '同じPanelist ID・Sample IDの確定済みデータがあります。' +
-        '別の試行として測定を開始しますか？'
-      );
-
-      if (!proceed) return;
-    }
-
-    events = [];
-    elapsed = 0;
-    activeAttr = null;
-    startAt = Date.now();
-    sessionStarted = true;
-
-    elapsedDisplay.textContent = formatMs(0);
-    renderLog();
-  }
-
-  isRunning = true;
-  timer = setInterval(updateElapsed, 50);
-
-  setTimerStatus('測定中');
-  updatePauseResumeBtn();
-  renderButtons();
-  saveDraft();
-}
-
-function pauseResumeSession() {
-  if (!sessionStarted) {
-    startSession();
-    return;
-  }
-
-  if (isRunning) {
-    updateElapsed();
-    isRunning = false;
-    stopTimer();
-    setTimerStatus('一時停止中');
-  } else {
-    startAt = Date.now() - elapsed;
-    isRunning = true;
-    timer = setInterval(updateElapsed, 50);
-    setTimerStatus('測定中');
-  }
-
-  updatePauseResumeBtn();
-  renderButtons();
-}
-
-function updatePauseResumeBtn() {
-  $('pauseResumeBtn').textContent =
-    isRunning ? 'Pause' : 'Resume';
-}
-
-function stopSession() {
-  if (!sessionStarted) return;
-
-  if (isRunning) {
-    updateElapsed();
-
-    // 選択中の属性があれば、終了時に解除イベントを記録
-    if (activeAttr !== null) {
-      logEvent(null);
-    }
-  }
-
-  isRunning = false;
-  stopTimer();
-
-  setTimerStatus('停止中');
-  updatePauseResumeBtn();
-  renderButtons();
-  saveDraft();
-}
-
-// =====================================================
-// 試料確定・一覧
-// =====================================================
-function completeTrial() {
-  if (isRunning) {
-    stopSession();
-  }
-
-  if (!sessionStarted || events.length === 0) {
-    alert('測定を開始して、イベントを1件以上記録してください。');
-    return;
-  }
+  if (phase !== 'idle') return;
 
   const panelistId = panelistInput.value.trim();
   const sampleId = sampleInput.value.trim();
 
   if (!panelistId || !sampleId) {
     alert('Panelist ID と Sample ID を入力してください。');
+    return;
+  }
+
+  if (completedTrials.some(
+    t => t.panelistId === panelistId &&
+         t.sampleId === sampleId
+  )) {
+    const proceed = confirm(
+      '同じPanelist ID・Sample IDの確定済みデータがあります。' +
+      '別の試行として測定を開始しますか？'
+    );
+
+    if (!proceed) return;
+  }
+
+  events = [];
+  elapsed = 0;
+  activeAttr = null;
+  startAt = null;
+  countdownAt = Date.now();
+
+  elapsedDisplay.textContent = formatMs(0);
+  renderLog();
+
+  setPhase('countdown');
+  setTimerStatus(
+    `評価開始まで ${COUNTDOWN_SECONDS} 秒\n試料を口に含んでください`
+  );
+
+  saveDraft();
+
+  // 50 msごとに状態を更新する
+  timer = setInterval(tick, 50);
+}
+
+function tick() {
+  const now = Date.now();
+
+  if (phase === 'countdown') {
+    const countdownElapsed = now - countdownAt;
+    const remainingMs =
+      COUNTDOWN_SECONDS * 1000 - countdownElapsed;
+
+    if (remainingMs <= 0) {
+      beginMeasurement(now);
+      return;
+    }
+
+    const remainingSeconds = Math.ceil(remainingMs / 1000);
+
+    setTimerStatus(
+      `評価開始まで ${remainingSeconds} 秒\n試料を口に含んでください`
+    );
+
+    elapsedDisplay.textContent = formatMs(0);
+    return;
+  }
+
+  if (phase !== 'running' || startAt === null) return;
+
+  elapsed = Math.min(now - startAt, TOTAL_SECONDS * 1000);
+
+  elapsedDisplay.textContent = formatMs(elapsed);
+
+  if (elapsed >= TOTAL_SECONDS * 1000) {
+    finishSession();
+    return;
+  }
+
+  if (elapsed >= SWALLOW_SECONDS * 1000) {
+    setTimerStatus(
+      '飲み込んでください\n' +
+      '評価はそのまま続けてください'
+    );
+    circleContainer.classList.add('swallow-phase');
+  } else {
+    const remaining = SWALLOW_SECONDS * 1000 - elapsed;
+
+    if (remaining <= 3000) {
+      setTimerStatus(
+        `評価中\nまもなく飲み込み：${Math.ceil(remaining / 1000)}秒`
+      );
+    } else {
+      setTimerStatus('評価中');
+    }
+  }
+}
+
+function beginMeasurement(now) {
+  startAt = now;
+  elapsed = 0;
+
+  setPhase('running');
+  elapsedDisplay.textContent = formatMs(0);
+  setTimerStatus('評価中');
+
+  saveDraft();
+}
+
+// =====================================================
+// 自動終了・試料自動確定
+// =====================================================
+function finishSession() {
+  if (phase !== 'running') return;
+
+  elapsed = TOTAL_SECONDS * 1000;
+  elapsedDisplay.textContent = formatMs(elapsed);
+
+  // 評価終了時に選択中の属性があれば解除イベントを記録
+  if (activeAttr !== null) {
+    events.push({
+      t: elapsed,
+      attr: null
+    });
+    activeAttr = null;
+  }
+
+  stopTimer();
+
+  // 25秒で試料を自動確定
+  finalizeTrial();
+
+  setPhase('idle');
+  startAt = null;
+  countdownAt = null;
+
+  setTimerStatus(
+    '評価終了\n次の試料を準備し、Sample IDを変更してください'
+  );
+
+  saveDraft();
+}
+
+// =====================================================
+// 試料確定・一覧
+// =====================================================
+function finalizeTrial() {
+  const panelistId = panelistInput.value.trim();
+  const sampleId = sampleInput.value.trim();
+
+  if (!panelistId || !sampleId) {
+    // 通常はStart時にチェック済み
+    setTimerStatus(
+      '評価終了\nIDが不足しているため結果を確定できませんでした'
+    );
     return;
   }
 
@@ -506,19 +577,11 @@ function completeTrial() {
   });
 
   events = [];
-  elapsed = 0;
-  startAt = null;
   activeAttr = null;
-  sessionStarted = false;
-  isRunning = false;
-
-  elapsedDisplay.textContent = formatMs(0);
-  setTimerStatus('次の試料を開始できます');
 
   renderButtons();
   renderLog();
   renderCompletedTrials();
-  updatePauseResumeBtn();
   saveDraft();
 }
 
@@ -539,13 +602,6 @@ function renderCompletedTrials() {
 
   $('collectionStatus').textContent =
     `確定済み試料：${completedTrials.length}件`;
-}
-
-function makeId() {
-  if (crypto.randomUUID) return crypto.randomUUID();
-
-  return Date.now().toString(36) + '-' +
-    Math.random().toString(36).slice(2);
 }
 
 // =====================================================
@@ -611,7 +667,8 @@ function downloadText(text, filename, type) {
 function exportCSV() {
   const all = [...completedTrials];
 
-  if (sessionStarted && events.length > 0) {
+  // 現在の試料の途中データもバックアップ可能にする
+  if (phase !== 'idle' && events.length > 0) {
     all.push({
       trialId: 'current',
       panelistId: panelistInput.value.trim(),
@@ -656,8 +713,8 @@ async function sendAllResults() {
     return;
   }
 
-  if (isRunning) {
-    alert('測定を停止してから送信してください。');
+  if (phase !== 'idle') {
+    alert('評価が終了してから送信してください。');
     return;
   }
 
@@ -674,7 +731,6 @@ async function sendAllResults() {
   btn.disabled = true;
   btn.textContent = '送信中…';
 
-  // 同じ送信内容の再試行で同じIDを使う
   let pending;
 
   try {
@@ -744,7 +800,8 @@ async function sendAllResults() {
 }
 
 // =====================================================
-// ブラウザ内の一時保存
+// ブラウザ内の作業データ一時保存・復元
+// Saved sessionsとは別の、自動バックアップ機能
 // =====================================================
 function saveDraft() {
   try {
@@ -754,7 +811,7 @@ function saveDraft() {
       events,
       completedTrials,
       elapsed,
-      sessionStarted
+      phase
     }));
   } catch (error) {
     console.warn('一時保存に失敗しました', error);
@@ -773,27 +830,24 @@ function restoreDraft() {
     panelistInput.value = data.panelist || '';
     sampleInput.value = data.sampleId || '';
 
-    // 評価属性は常に固定リストを使用する
     events = Array.isArray(data.events) ? data.events : [];
     completedTrials = Array.isArray(data.completedTrials)
       ? data.completedTrials : [];
 
-    elapsed = Number(data.elapsed) || 0;
-
-    // ページ再読み込み後は安全のため停止状態から再開
-    sessionStarted = false;
-    isRunning = false;
-    startAt = null;
-    timer = null;
+    // 再読み込み後は実行中の計測を再開せず、安全に待機状態に戻す
+    elapsed = 0;
     activeAttr = null;
+    startAt = null;
+    countdownAt = null;
+    stopTimer();
 
-    elapsedDisplay.textContent = formatMs(elapsed);
-    setTimerStatus('復元済み・停止中');
+    setPhase('idle');
+    elapsedDisplay.textContent = formatMs(0);
+    setTimerStatus('作業データ復元済み・次の試料を開始できます');
 
     renderButtons();
     renderLog();
     renderCompletedTrials();
-    updatePauseResumeBtn();
 
   } catch (error) {
     console.warn('作業データの復元に失敗しました', error);
@@ -801,110 +855,12 @@ function restoreDraft() {
 }
 
 // =====================================================
-// 名前付きセッションの保存・読込
-// =====================================================
-function saveSession() {
-  const name = prompt('保存するセッション名を入力してください');
-  if (!name) return;
-
-  try {
-    localStorage.setItem(
-      'tds_session_' + name,
-      JSON.stringify({
-        panelist: panelistInput.value,
-        sampleId: sampleInput.value,
-        events,
-        completedTrials,
-        elapsed
-      })
-    );
-
-    refreshLoadSelect();
-    alert('セッションを保存しました。');
-
-  } catch (error) {
-    alert('保存できませんでした。ブラウザの保存容量を確認してください。');
-  }
-}
-
-function refreshLoadSelect() {
-  loadSelect.replaceChildren(
-    new Option('-- saved sessions --', '')
-  );
-
-  Object.keys(localStorage)
-    .filter(key => key.startsWith('tds_session_'))
-    .forEach(key => {
-      const name = key.slice('tds_session_'.length);
-      loadSelect.add(new Option(name, name));
-    });
-}
-
-function loadSession() {
-  const name = loadSelect.value;
-  if (!name) return;
-
-  const raw = localStorage.getItem('tds_session_' + name);
-  if (!raw) return;
-
-  try {
-    const data = JSON.parse(raw);
-
-    stopTimer();
-    isRunning = false;
-    sessionStarted = false;
-    startAt = null;
-    timer = null;
-    activeAttr = null;
-
-    panelistInput.value = data.panelist || '';
-    sampleInput.value = data.sampleId || '';
-
-    // 保存データに属性情報があっても固定属性を優先する
-    events = Array.isArray(data.events) ? data.events : [];
-    completedTrials = Array.isArray(data.completedTrials)
-      ? data.completedTrials : [];
-
-    elapsed = Number(data.elapsed) || 0;
-
-    elapsedDisplay.textContent = formatMs(elapsed);
-    setTimerStatus('保存データ読込済み・停止中');
-
-    renderButtons();
-    renderLog();
-    renderCompletedTrials();
-    updatePauseResumeBtn();
-    saveDraft();
-
-  } catch (error) {
-    alert('セッションを読み込めませんでした。');
-  }
-}
-
-function deleteSession() {
-  const name = loadSelect.value;
-  if (!name) return;
-
-  if (!confirm(`セッション「${name}」を削除しますか？`)) return;
-
-  localStorage.removeItem('tds_session_' + name);
-  refreshLoadSelect();
-}
-
-// =====================================================
 // 初期化・イベント登録
 // =====================================================
 $('startBtn').addEventListener('click', startSession);
-$('pauseResumeBtn').addEventListener('click', pauseResumeSession);
-$('stopBtn').addEventListener('click', stopSession);
 $('exportBtn').addEventListener('click', exportCSV);
 $('exportAllBtn').addEventListener('click', exportAllCSV);
-$('completeTrialBtn').addEventListener('click', completeTrial);
 $('sendAllBtn').addEventListener('click', sendAllResults);
-$('saveBtn').addEventListener('click', saveSession);
-$('deleteBtn').addEventListener('click', deleteSession);
-
-loadSelect.addEventListener('change', loadSession);
 
 panelistInput.addEventListener('change', saveDraft);
 sampleInput.addEventListener('change', saveDraft);
@@ -912,10 +868,8 @@ sampleInput.addEventListener('change', saveDraft);
 renderButtons();
 renderLog();
 renderCompletedTrials();
-refreshLoadSelect();
 restoreDraft();
 </script>
 
 </body>
 </html>
-
