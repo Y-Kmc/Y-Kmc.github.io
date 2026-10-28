@@ -794,11 +794,6 @@ async function sendAllResults() {
     return;
   }
 
-  if (!GAS_URL.startsWith('https://script.google.com/')) {
-    alert('GAS_URL にApps ScriptのウェブアプリURLを設定してください。');
-    return;
-  }
-
   if (!confirm(
     `${completedTrials.length}件の試験区データを送信します。よろしいですか？`
   )) {
@@ -809,72 +804,56 @@ async function sendAllResults() {
   btn.disabled = true;
   btn.textContent = '送信中…';
 
-  let pending;
-
   try {
-    pending = JSON.parse(
-      localStorage.getItem('tds_pending_submission') || 'null'
-    );
-  } catch {
-    pending = null;
-  }
-
-  const batchFingerprint = JSON.stringify(
-    completedTrials.map(trial => trial.trialId)
-  );
-
-  if (!pending || pending.fingerprint !== batchFingerprint) {
-    pending = {
-      submissionId: makeId(),
-      fingerprint: batchFingerprint
+    const payload = {
+      accessKey: ACCESS_KEY,
+      submissionId: 'tds-' + Date.now(),
+      panelistId: completedTrials[0].panelistId,
+      submittedAt: new Date().toISOString(),
+      trials: completedTrials
     };
 
-    localStorage.setItem(
-      'tds_pending_submission',
-      JSON.stringify(pending)
-    );
-  }
+    const json = JSON.stringify(payload);
+    const bytes = new Blob([json]).size;
 
-  const payload = {
-    accessKey: ACCESS_KEY,
-    submissionId: pending.submissionId,
-    panelistId: completedTrials[0].panelistId,
-    submittedAt: new Date().toISOString(),
-    trials: completedTrials
-  };
+    console.log('TDS送信データ確認', {
+      trialCount: payload.trials.length,
+      eventCounts: payload.trials.map(
+        trial => Array.isArray(trial.events)
+          ? trial.events.length
+          : 'eventsなし'
+      ),
+      payloadBytes: bytes,
+      submissionId: payload.submissionId
+    });
 
-  try {
-    // no-corsではレスポンス本文を読み取れない。
-    // 実際の保存成否は管理側スプレッドシートで確認する。
     await fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: {
         'Content-Type': 'text/plain;charset=UTF-8'
       },
-      body: JSON.stringify(payload)
+      body: json
     });
 
     $('collectionStatus').textContent =
-      '送信リクエストを送信しました。' +
-      '管理側のスプレッドシートで保存結果を確認してください。';
+      `送信リクエスト送信済み（${payload.trials.length}試験区、` +
+      `${bytes.toLocaleString()} bytes）。` +
+      '保存結果はスプレッドシートで確認してください。';
 
     $('collectionStatus').className =
       'mt-3 text-sm text-orange-700';
 
   } catch (error) {
-    console.error(error);
+    console.error('TDS送信エラー:', error);
 
     $('collectionStatus').textContent =
-      '送信エラーの可能性があります。CSVを保存してください。';
+      `送信処理でエラーが発生しました：${error.message}`;
 
     $('collectionStatus').className =
       'mt-3 text-sm text-red-700';
 
-    alert(
-      '送信処理でエラーが発生しました。' +
-      'CSVを保存してデータを保全してください。'
-    );
+    alert('送信処理に失敗しました。ブラウザの開発者ツールでエラーを確認してください。');
 
   } finally {
     btn.disabled = false;
