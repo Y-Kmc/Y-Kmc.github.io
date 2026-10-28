@@ -4,136 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>TDS 評価アプリa</title>
+<title>TDS 評価アプリ</title>
 <script src="https://cdn.tailwindcss.com"></script>
-// =====================================================
-// 一括送信
-// 旧版の送信ID管理を復元し、送信データの診断ログを追加
-// =====================================================
-async function sendAllResults() {
-  if (completedTrials.length === 0) {
-    alert('送信する確定済み試験区がありません。');
-    return;
-  }
 
-  if (phase !== 'idle') {
-    alert('測定が終了してから送信してください。');
-    return;
-  }
-
-  if (!GAS_URL.startsWith('https://script.google.com/')) {
-    alert('GAS_URL にApps ScriptのウェブアプリURLを設定してください。');
-    return;
-  }
-
-  if (!confirm(
-    `${completedTrials.length}件の試験区データを送信します。よろしいですか？`
-  )) {
-    return;
-  }
-
-  const btn = $('sendAllBtn');
-  btn.disabled = true;
-  btn.textContent = '送信中…';
-
-  try {
-    // 同じ試行データの再送では、同じsubmissionIdを使用する
-    let pending;
-
-    try {
-      pending = JSON.parse(
-        localStorage.getItem('tds_pending_submission') || 'null'
-      );
-    } catch {
-      pending = null;
-    }
-
-    const batchFingerprint = JSON.stringify(
-      completedTrials.map(trial => trial.trialId)
-    );
-
-    if (
-      !pending ||
-      pending.fingerprint !== batchFingerprint ||
-      !pending.submissionId
-    ) {
-      pending = {
-        submissionId: makeId(),
-        fingerprint: batchFingerprint
-      };
-
-      localStorage.setItem(
-        'tds_pending_submission',
-        JSON.stringify(pending)
-      );
-    }
-
-    const payload = {
-      accessKey: ACCESS_KEY,
-      submissionId: pending.submissionId,
-      panelistId: completedTrials[0].panelistId,
-      submittedAt: new Date().toISOString(),
-      trials: completedTrials
-    };
-
-    const json = JSON.stringify(payload);
-    const bytes = new Blob([json]).size;
-
-    // 診断用ログ
-    console.log('TDS送信先:', GAS_URL);
-    console.log('TDS送信データ:', {
-      submissionId: payload.submissionId,
-      trialCount: payload.trials.length,
-      eventCounts: payload.trials.map(trial =>
-        Array.isArray(trial.events) ? trial.events.length : 'eventsなし'
-      ),
-      payloadBytes: bytes
-    });
-
-    const response = await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'text/plain;charset=UTF-8'
-      },
-      body: json
-    });
-
-    // no-corsでは通常、opaque responseとなり、
-    // HTTPステータスやレスポンス本文を確認できない。
-    console.log('TDS送信fetch完了:', {
-      type: response.type,
-      status: response.status,
-      ok: response.ok
-    });
-
-    $('collectionStatus').textContent =
-      `送信リクエスト送信済み（${payload.trials.length}試験区、` +
-      `${bytes.toLocaleString()} bytes）。` +
-      '保存結果はスプレッドシートで確認してください。';
-
-    $('collectionStatus').className =
-      'mt-3 text-sm text-orange-700';
-
-  } catch (error) {
-    console.error('TDS送信エラー:', error);
-
-    $('collectionStatus').textContent =
-      `送信処理でエラーが発生しました：${error.message}`;
-
-    $('collectionStatus').className =
-      'mt-3 text-sm text-red-700';
-
-    alert(
-      '送信処理でエラーが発生しました。' +
-      '開発者ツールのConsoleとNetworkを確認してください。'
-    );
-
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '全結果を送信';
-  }
-}
 <style>
   body {
     font-family: sans-serif;
@@ -907,7 +780,7 @@ function exportAllCSV() {
 
 // =====================================================
 // 一括送信
-// CSV用に加工する前の元イベントデータを送信する。
+// 旧版の送信ID管理を復元し、送信データの診断ログを追加
 // =====================================================
 async function sendAllResults() {
   if (completedTrials.length === 0) {
@@ -917,6 +790,11 @@ async function sendAllResults() {
 
   if (phase !== 'idle') {
     alert('測定が終了してから送信してください。');
+    return;
+  }
+
+  if (!GAS_URL.startsWith('https://script.google.com/')) {
+    alert('GAS_URL にApps ScriptのウェブアプリURLを設定してください。');
     return;
   }
 
@@ -931,9 +809,40 @@ async function sendAllResults() {
   btn.textContent = '送信中…';
 
   try {
+    // 同じ試行データの再送では、同じsubmissionIdを使用する
+    let pending;
+
+    try {
+      pending = JSON.parse(
+        localStorage.getItem('tds_pending_submission') || 'null'
+      );
+    } catch {
+      pending = null;
+    }
+
+    const batchFingerprint = JSON.stringify(
+      completedTrials.map(trial => trial.trialId)
+    );
+
+    if (
+      !pending ||
+      pending.fingerprint !== batchFingerprint ||
+      !pending.submissionId
+    ) {
+      pending = {
+        submissionId: makeId(),
+        fingerprint: batchFingerprint
+      };
+
+      localStorage.setItem(
+        'tds_pending_submission',
+        JSON.stringify(pending)
+      );
+    }
+
     const payload = {
       accessKey: ACCESS_KEY,
-      submissionId: 'tds-' + Date.now(),
+      submissionId: pending.submissionId,
       panelistId: completedTrials[0].panelistId,
       submittedAt: new Date().toISOString(),
       trials: completedTrials
@@ -942,24 +851,32 @@ async function sendAllResults() {
     const json = JSON.stringify(payload);
     const bytes = new Blob([json]).size;
 
-    console.log('TDS送信データ確認', {
+    // 診断用ログ
+    console.log('TDS送信先:', GAS_URL);
+    console.log('TDS送信データ:', {
+      submissionId: payload.submissionId,
       trialCount: payload.trials.length,
-      eventCounts: payload.trials.map(
-        trial => Array.isArray(trial.events)
-          ? trial.events.length
-          : 'eventsなし'
+      eventCounts: payload.trials.map(trial =>
+        Array.isArray(trial.events) ? trial.events.length : 'eventsなし'
       ),
-      payloadBytes: bytes,
-      submissionId: payload.submissionId
+      payloadBytes: bytes
     });
 
-    await fetch(GAS_URL, {
+    const response = await fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: {
         'Content-Type': 'text/plain;charset=UTF-8'
       },
       body: json
+    });
+
+    // no-corsでは通常、opaque responseとなり、
+    // HTTPステータスやレスポンス本文を確認できない。
+    console.log('TDS送信fetch完了:', {
+      type: response.type,
+      status: response.status,
+      ok: response.ok
     });
 
     $('collectionStatus').textContent =
@@ -979,7 +896,10 @@ async function sendAllResults() {
     $('collectionStatus').className =
       'mt-3 text-sm text-red-700';
 
-    alert('送信処理に失敗しました。ブラウザの開発者ツールでエラーを確認してください。');
+    alert(
+      '送信処理でエラーが発生しました。' +
+      '開発者ツールのConsoleとNetworkを確認してください。'
+    );
 
   } finally {
     btn.disabled = false;
